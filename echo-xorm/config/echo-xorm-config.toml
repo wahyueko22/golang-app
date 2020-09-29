@@ -1,0 +1,17 @@
+title = "Echo-xorm Web Application Configuration"
+
+# PORT for web-API application
+port = "11111"
+
+[database]
+# TYPE of application database
+db = "sqlite3"
+# DATA SOURCE NAME of application database
+dsn = "/tmp/echo-xorm.sqlite.db"
+
+[logging]
+# available values "std" (or "stdout"), "fluent" (or "fluentd"), "nil" ("null")
+# if not recognized then log_mode considered as "std"
+log_mode = "std"
+#log_tag = "your-app-tag" # if null then log_tag will be set to executable name
+#id = "your-app-id" # if null then id will be set to process id
