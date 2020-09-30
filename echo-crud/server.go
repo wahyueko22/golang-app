@@ -2,19 +2,16 @@ package main
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"os"
-	"strings"
-	"time"
 
-	jwtGo "github.com/dgrijalva/jwt-go"
+	"echo-crud/auth"
+
 	"github.com/labstack/echo/v4"
 	myMiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 var (
-	CookieSessionLogin    = "SessionLogin"
 	LoginSuccessCookieVal = "LoginSuccess"
 	UserIdExample         = "20022012"
 	SecretKeyExample      = "mLmHu8f1IxFo4dWurBG3jEf1Ex0wDZvvwND6eFmcaX"
@@ -27,20 +24,7 @@ func main() {
 	// Custom Middleware
 	e.Use(CustomMiddleWareForServerHeader)
 
-	adminGroup := e.Group("/admin")
-	cookieGroup := e.Group("/cookie")
 	jwtGroup := e.Group("/jwt")
-
-	// Default Logging Middleware when call API /admin/**
-	// adminGroup.Use(myMiddleware.Logger())
-
-	// Custom Logging Middleware when call API /admin/**
-	adminGroup.Use(myMiddleware.LoggerWithConfig(myMiddleware.LoggerConfig{
-		Format: `[${time_rfc3339} ${status} ${method} ${host}${path} ${latency_human}]` + "\n",
-	}))
-
-	// BASIC Auth Middleware
-	adminGroup.Use(myMiddleware.BasicAuth(validateUser))
 
 	// JWT Middleware
 	jwtGroup.Use(myMiddleware.JWTWithConfig(myMiddleware.JWTConfig{
@@ -48,20 +32,12 @@ func main() {
 		SigningKey:    []byte(SecretKeyExample),
 	}))
 
-	// COOKIE Middleware
-	cookieGroup.Use(checkCookie)
-
-	// ROUTING `cookieGroup`
-	cookieGroup.GET("/main", mainCookie)
-
-	// ROUTING `adminGroup`
-	adminGroup.GET("/main", mainAdmin)
-
 	// ROUTING `jwtGroup`
 	jwtGroup.GET("/main", mainJwt)
 
+	e.Logger.Info("masukkk")
 	// ROUTING `E`
-	e.GET("/login", login)
+	e.GET("/login", auth.Login)
 	e.GET("/", welcome)
 	e.GET("/users/:id", getUser)
 	e.POST("/users/form", saveUserByForm)
@@ -75,84 +51,7 @@ func main() {
 }
 
 func mainJwt(c echo.Context) error {
-	return c.String(http.StatusOK, "SUCCESS: you are on the top secret jwt page!")
-}
-
-func login(c echo.Context) error {
-	username := c.QueryParam("username")
-	password := c.QueryParam("password")
-
-	if username == "firman" && password == "secret" {
-		cookie := &http.Cookie{} // this is same like --> cookie := new(http.Cookie)
-		cookie.Name = CookieSessionLogin
-		cookie.Value = LoginSuccessCookieVal
-		cookie.Expires = time.Now().Add(48 * time.Hour)
-
-		c.SetCookie(cookie)
-
-		// TODO: create jwt token
-		token, err := createJwtToken()
-		if err != nil {
-			log.Println("Error when creating JWT token", err)
-			return c.String(http.StatusInternalServerError, "ERROR: something went wrong while creating JWT token!")
-		}
-
-		return c.JSON(http.StatusOK, map[string]string{
-			"message": "You ware logged in!",
-			"token":   token,
-		})
-	}
-
-	return c.String(http.StatusUnauthorized, "WARNING: Make sure your account is coorect!")
-}
-
-type JwtClaims struct {
-	Name string `json:"name"`
-	jwtGo.StandardClaims
-}
-
-func createJwtToken() (string, error) {
-	claims := JwtClaims{
-		"Firman",
-		jwtGo.StandardClaims{
-			Id:        UserIdExample,
-			ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
-		},
-	}
-
-	// we hash the jwt claims
-	rawToken := jwtGo.NewWithClaims(jwtGo.SigningMethodHS512, claims)
-
-	token, err := rawToken.SignedString([]byte(SecretKeyExample))
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
-}
-
-func checkCookie(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		cookie, err := c.Cookie(CookieSessionLogin)
-
-		if err != nil {
-			if strings.Contains(err.Error(), "named cookie not present") {
-				return c.String(http.StatusUnauthorized, "WARNING: You don't have any cookie")
-			}
-			log.Println(err)
-			return err
-		}
-
-		if cookie.Value == LoginSuccessCookieVal {
-			return next(c)
-		}
-
-		return c.String(http.StatusUnauthorized, "WARNING: You don't have the right cookie")
-	}
-}
-
-func mainCookie(c echo.Context) error {
-	return c.String(http.StatusOK, "SUCCESS: you are on the secret cookie page!")
+	return c.String(http.StatusOK, "SUCCESS: you are on the top secret jwt page aaaaa!")
 }
 
 func CustomMiddleWareForServerHeader(next echo.HandlerFunc) echo.HandlerFunc {
@@ -161,17 +60,6 @@ func CustomMiddleWareForServerHeader(next echo.HandlerFunc) echo.HandlerFunc {
 		c.Response().Header().Set("My-Custom-Header", "ThisHaveNoMeaning")
 		return next(c)
 	}
-}
-
-func mainAdmin(c echo.Context) error {
-	return c.String(http.StatusOK, "SUCCESS: hello you are in the admin page")
-}
-
-func validateUser(username, password string, c echo.Context) (bool, error) {
-	if username == "firman" && password == "secret" {
-		return true, nil
-	}
-	return false, nil
 }
 
 func welcome(c echo.Context) error {
