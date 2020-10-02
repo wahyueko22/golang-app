@@ -1,21 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"echo-crud/auth"
+	"echo-crud/common"
+	"echo-crud/model"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
 	myMiddleware "github.com/labstack/echo/v4/middleware"
-)
-
-var (
-	LoginSuccessCookieVal = "LoginSuccess"
-	UserIdExample         = "20022012"
-	SecretKeyExample      = "mLmHu8f1IxFo4dWurBG3jEf1Ex0wDZvvwND6eFmcaX"
-	SigningMethodExample  = "HS512"
 )
 
 func main() {
@@ -23,22 +21,48 @@ func main() {
 
 	// Custom Middleware
 	e.Use(CustomMiddleWareForServerHeader)
-
-	jwtGroup := e.Group("/jwt")
+	e.Use(func(h echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			//reference data
+			appContext := &common.AppContext{}
+			appContext.Context = c
+			return h(appContext)
+		}
+	})
 
 	// JWT Middleware
-	jwtGroup.Use(myMiddleware.JWTWithConfig(myMiddleware.JWTConfig{
-		SigningMethod: SigningMethodExample,
-		SigningKey:    []byte(SecretKeyExample),
+	e.Use(myMiddleware.JWTWithConfig(myMiddleware.JWTConfig{
+		SigningMethod: auth.SigningMethod,
+		SigningKey:    []byte(auth.SecretKey),
+		Claims:        &auth.JwtCustomClaims{},
+		Skipper: func(c echo.Context) bool {
+			if strings.HasSuffix(c.Path(), "/login") {
+				return true
+			}
+			return false
+		},
+		SuccessHandler: func(c echo.Context) {
+			user, ok := c.Get("user").(*jwt.Token)
+			if ok {
+				claims := user.Claims.(*auth.JwtCustomClaims)
+				//reference data
+				appContext := &common.AppContext{}
+				user := &model.User{}
+				user.Name = claims.Name
+				appContext.User = user
+				fmt.Println(" Claim ID : ")
+				fmt.Println(claims.Id)
+				fmt.Println("Standart Claim ID: ")
+				fmt.Println(claims.StandardClaims.Id)
+			}
+		},
 	}))
-
-	// ROUTING `jwtGroup`
-	jwtGroup.GET("/main", mainJwt)
-
+	//	e.
 	e.Logger.Info("masukkk")
 	// ROUTING `E`
 	e.GET("/login", auth.Login)
 	e.GET("/", welcome)
+	e.GET("/main", mainJwt)
 	e.GET("/users/:id", getUser)
 	e.POST("/users/form", saveUserByForm)
 	e.POST("/users/json", saveUserByJson)
@@ -50,16 +74,16 @@ func main() {
 	e.Logger.Fatal(e.Start(":1323"))
 }
 
-func mainJwt(c echo.Context) error {
-	return c.String(http.StatusOK, "SUCCESS: you are on the top secret jwt page aaaaa!")
-}
-
 func CustomMiddleWareForServerHeader(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		c.Response().Header().Set(echo.HeaderServer, "ServerFirman/1.0")
 		c.Response().Header().Set("My-Custom-Header", "ThisHaveNoMeaning")
 		return next(c)
 	}
+}
+
+func mainJwt(c echo.Context) error {
+	return c.String(http.StatusOK, "SUCCESS: you are on the top secret jwt page aaaaa!")
 }
 
 func welcome(c echo.Context) error {
