@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -15,11 +16,30 @@ const (
 	SigningMethod = "HS512"
 )
 
-func Login(c echo.Context) error {
-	username := c.QueryParam("username")
-	password := c.QueryParam("password")
+type LoginForm struct {
+	UserName string `json:"username" form:"username" query:"username"  validate:"required"`
+	Password string `json:"password" form:"password" query:"password"  validate:"required"`
+}
 
-	if username == "wahyu" && password == "password" {
+func Login(c echo.Context) error {
+	//username := c.QueryParam("username")
+	//password := c.QueryParam("password")
+	//currContext := c.(*common.AppContext)
+	//u := &user{}
+	form := new(LoginForm)
+	//form := &LoginForm{}
+	fmt.Println(" masukkk  loginnn : ")
+
+	if err := c.Bind(&form); err != nil {
+		return err
+	}
+
+	if err := c.Validate(form); err != nil {
+		//log.Print(err)
+		return err
+	}
+
+	if form.UserName == "wahyu" && form.Password == "password" {
 		// TODO: create jwt token
 		token, err := createJwtToken()
 		if err != nil {
