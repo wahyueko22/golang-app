@@ -15,7 +15,7 @@ var ctx = context.Background()
 
 //defer cancel()
 
-type student struct {
+type Student struct {
 	Name  string `bson:"name"`
 	Grade int    `bson:"Grade"`
 }
@@ -43,12 +43,12 @@ func Insert() {
 		log.Fatal(err.Error())
 	}
 
-	_, err = db.Collection("student").InsertOne(ctx, student{"Wick", 2})
+	_, err = db.Collection("student").InsertOne(ctx, Student{"Wick", 2})
 	if err != nil {
 		log.Fatal(err.Error())
 	}
 
-	_, err = db.Collection("student").InsertOne(ctx, student{"Ethan", 2})
+	_, err = db.Collection("student").InsertOne(ctx, Student{"Ethan", 2})
 	if err != nil {
 		log.Fatal(err.Error())
 	}
@@ -56,7 +56,7 @@ func Insert() {
 	fmt.Println("Insert success!")
 }
 
-func Find() string {
+func Find() []Student {
 	db, err := connect()
 	if err != nil {
 		panic(err.Error())
@@ -69,9 +69,9 @@ func Find() string {
 	}
 	defer csr.Close(ctx)
 
-	result := make([]student, 0)
+	result := make([]Student, 0)
 	for csr.Next(ctx) {
-		var row student
+		var row Student
 		err := csr.Decode(&row)
 		if err != nil {
 			log.Fatal(err.Error())
@@ -80,12 +80,34 @@ func Find() string {
 		result = append(result, row)
 	}
 
-	var str string
-	if len(result) > 0 {
-		fmt.Println("Name  :", result[0].Name)
-		fmt.Println("Grade :", result[0].Grade)
-		str = result[0].Name
+	return result
+
+}
+
+func FindAll() []Student {
+	db, err := connect()
+	if err != nil {
+		panic(err.Error())
+		//log.Fatal(err.Error())
 	}
-	return str
+
+	csr, err := db.Collection("student").Find(ctx, bson.M{})
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	defer csr.Close(ctx)
+
+	result := make([]Student, 0)
+	for csr.Next(ctx) {
+		var row Student
+		err := csr.Decode(&row)
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		result = append(result, row)
+	}
+
+	return result
 
 }

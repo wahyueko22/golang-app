@@ -1,0 +1,4 @@
+
+docker build -f path-of-docker-file -t image-name:tag .
+
+docker build -f docker-multistage/dockerfile  -t web-go-tes:1.0 .

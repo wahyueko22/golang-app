@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"go-mongo/mongo-crud"
 	"log"
 	"net/http"
@@ -21,14 +21,19 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	if name == "" {
 		name = "Guest"
 	}
+	data := &mongo.Student{Name: "john lenon", Grade: 1}
 	log.Printf("Received request for %s\n", name)
-	w.Write([]byte(fmt.Sprintf("Hello, %s\n", name)))
+	//w.Write([]byte(fmt.Sprintf("Hello, %s\n", name)))
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(data)
 }
 
 func handlerMongo(w http.ResponseWriter, r *http.Request) {
-	name := mongo.Find()
-	log.Printf("Received request for %s\n", name)
-	w.Write([]byte(fmt.Sprintf("Hello, %s\n", name)))
+	data := mongo.FindAll()
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(data)
 }
 
 func main() {
@@ -84,3 +89,4 @@ func waitForShutdown(srv *http.Server) {
 	log.Println("Shutting down")
 	os.Exit(0)
 }
+
