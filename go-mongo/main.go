@@ -19,7 +19,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	name := query.Get("name")
 	if name == "" {
-		name = "Guest"
+name = "Guest"
 	}
 	data := &mongo.Student{Name: "john lenon", Grade: 1}
 	log.Printf("Received request for %s\n", name)
