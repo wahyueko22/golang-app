@@ -1,42 +1,38 @@
-#https://www.cloudbees.com/blog/building-minimal-docker-containers-for-go-applications/
-FROM golang:alpine AS builder
+FROM golang:alpine as builder
+RUN apk add git
 
-# Set necessary environmet variables needed for our image
-ENV GO111MODULE=on \
-    CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64
+# Set the Current Working Directory inside the container
+WORKDIR /app
 
-# Move to working directory /build
-WORKDIR /build
+# Copy go mod and sum files
+COPY go.mod go.sum ./
+#COPY resources/* ./
 
-# Copy and download dependency using go mod
-COPY go.mod .
-COPY go.sum .
+# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
-# Copy the code into the container
+# Copy the source from the current directory to the Working Directory inside the container
 COPY . .
 
-# Run test
-RUN go test ./...
+# Build the Go app
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
-# Build the application
-RUN go build -o main .
 
-# Move to /dist directory as the place for resulting binary folder
-WORKDIR /dist
+######## Start a new stage from scratch #######
+FROM alpine:latest  
 
-# Copy binary from build to main folder
-RUN cp /build/main .
+RUN apk update && apk --no-cache add tzdata ca-certificates
 
-############################
-# STEP 2 build a small image
-############################
-FROM scratch
+WORKDIR /root/
+RUN mkdir database
 
-COPY --from=builder /dist/main /
-COPY ./database/data.json /database/data.json
+# Copy the Pre-built binary file from the previous stage
+COPY --from=builder /app/main .
+COPY --from=builder /app/database/data.json database/
+#COPY --from=builder /app/resources resources/
+
+# Expose port 8080 to the outside world
+EXPOSE 3000
 
 # Command to run the executable
-ENTRYPOINT ["/main"]
+CMD ["./main"]
