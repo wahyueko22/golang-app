@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"go-mongo/mongo-crud"
+	mongo "go-mongo/mongo_crud"
 	"log"
 	"net/http"
 	"os"
@@ -19,7 +19,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	name := query.Get("name")
 	if name == "" {
-name = "Guest"
+		name = "Guest"
 	}
 	data := &mongo.Student{Name: "john lenon", Grade: 1}
 	log.Printf("Received request for %s\n", name)
@@ -89,4 +89,3 @@ func waitForShutdown(srv *http.Server) {
 	log.Println("Shutting down")
 	os.Exit(0)
 }
-

@@ -32,5 +32,7 @@ func GetDBEngine() *xorm.Engine {
 		return nil
 	}
 	fmt.Println("connect postgresql success")
+	engine.SetMaxIdleConns(5)
+	//engine.conec
 	return engine
 }
